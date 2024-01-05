@@ -31,11 +31,11 @@
   - `apt list --installed`
 		
 - <b>2. Remove packages</b>
-- `sudo apt purge (place package names here separated by a space)`
+	- `sudo apt purge (place package names here separated by a space)`
 
 <!-------------------------------------- SMALL BREAK -------------------------------------->
 
-<h2>Disable Unnecessary Services</h2>
+<h3>Disable Unnecessary Services</h3>
 
 - <b>1. Check Running Services</b>
   - `sudo service --status-all`
@@ -81,7 +81,7 @@
   - `sudo apt install fail2ban`
 			
 - <b>2. Check if it is running</b>
-- `systemctl status fail2ban.service`
+	- `systemctl status fail2ban.service`
 
 <!---------------------------------------------------------------------- SECTION BREAK ---------------------------------------------------------------------->
 
@@ -142,4 +142,166 @@
 
 <!-------------------------------------- SMALL BREAK -------------------------------------->
 
+<h2>3. Wireless Network Vulnerabilities:</h2>
+	
+- <b>Tool: Aircrack-ng</b>
+	- <b>Description:</b> Aircrack-ng is a suite of wireless network security tools for assessing Wi-Fi network security.
+	- <b>Installation:</b> Install on Ubuntu using
+			- `sudo apt install aircrack-ng`
+	- <i>(Note) To complete a wireless network audit, you need a wireless network interface controller whose driver supports raw monitoring mode and can sniff 802.11a, 802.11b, and 802.11g traffic. Typical Wi-Fi adapters (usually built-in with your computer) don't have the ability to monitor traffic from other networks. You can only use them to connect to a Wi-Fi access point.With an Aircrack compatible Wi-Fi adapter, you can enable the ‘monitor mode’ with which you can sniff traffic from networks you are not connected to. You can then use that captured data to crack the password of that network.If you have a wireless NIC that supports monitor mode and want a great guide on how to complete this audit, visit https://www.freecodecamp.org/news/wifi-hacking-securing-wifi-networks-with-aircrack-ng/ or https://thecybersecurityman.com/2018/05/02/cracking-wi-fi-passwords-with-aircrack-ng/</i>
+		
+- <b>Step 1: Enable Monitor Mode</b>
+	- <i>(Note) As mentioned above, Aircrack-ng will only work on wireless NICs that support “monitor” mode. Monitor mode is one of the six modes that some wireless NICs support and they are reserved specifically for wireless networks. By default, wireless NICs are set to “managed” mode, but they can also be set to ad hoc, mesh, repeater, and master mode. Unlike Promiscuous Mode, you don’t have to associate (authenticate) with an AP or wireless network to capture traffic. When set to monitor mode, the wireless NIC ceases sending any information in order to fully dedicate itself to a passive “monitoring” of all the wireless traffic it can receive within range.</i>
+	
+- <b>To put your wireless NIC into monitor mode, type</b>
+	- `airmon-ng start wlan0`
+- <b>Then to prevent interference type</b>
+	- `airmon-ng check kill`
+	
+- <b>Step 2: Airodump-ng</b>
+	- <i>(Note) Airodump-ng is a packet sniffing tool that works very similar to Kismet. This tool will display a list of Access Points (APs) and any clients (stations) that are associated to them.</i>
+	
+- <b>To start airodump-ng, type</b>
+	- `airodump-ng wlan0mon`
+	- <i>(Note) Take note of your AP and record the BSSID and the channel it’s broadcasting on.</i>
+	
+- <b>Step 3: Target the AP</b>
+	- Close the original airodump-ng window and type into a new terminal
+	- `airodump-ng –bssid "Your:BS:SI:DH:ER:E!" -c 1 –write WPA2handshake wlan0mon`
+	- <i>(Note) you need to type in the BSSID of your AP instead, and not the example one I put in quotes. You also need to write the channel your AP is on.</i>
+	
+- <b>Step 4: Deauth</b>
+	- <i>(Note) The purpose of a deauth off the network is so that when you re-authenticate, airodump-ng will capture the WPA handshake.</i>
+	
+- <b>Type this command into a new terminal:</b>
+	- `aireplay-ng –deauth 50 -a "Your:BS:SI:DH:ER:E!" wlan0mon`
+	- <i>(Note) Aireplay-ng is a packet injector. This command will inject 50 deauthentication frames onto your network. Again, you need to type your target AP’s BSSID. Once the deauth has completed, you can close the terminal, but still keep the airodump-ng terminal open.</i>
+	
+- <b>Step 5: Wait for a Captured Handshake</b>
+	- You’ll know you’ve caught the WPA handshake when the message, WPA handshake: [BSSID] appears in the airodump-ng terminal.
+	
+- <b>Step 6: Crack the Password</b>
+	- Install seclists for a collection of lists of common passwords
+	- `sudo apt install seclists -y or sudo snap install seclists -y`
+	- <i>(Note) The file is around 1GB in size.</i>
+	
+- <b>Type this in a new terminal window:</b>
+	- `aircrack-ng WPA2handshake-01.cap -w /usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt`
+	- <i>(Note) This will start aircrack-ng. The amount of time you’ll have to wait for the password crack will depend on the complexity of the password. To defend against this type of attack, you should have a very complex and lengthy password.</i>
 
+<!-------------------------------------- SMALL BREAK -------------------------------------->
+
+<h2>4. Password Auditing:</h2>
+	
+- <b>Tool: John the Ripper</b>
+	- <b>Description:</b> John the Ripper is a fast password cracker that can detect weak passwords.
+	- <b>Installation:</b> Install on Ubuntu using
+	- `sudo apt install john`
+		
+- <b>Install a wordlist</b>
+	- `sudo apt-get install wamerican-large -y`
+		
+- To run John against user passwords, merge the shadow and password files with this command
+	- `sudo /usr/sbin/unshadow /etc/passwd /etc/shadow /tmp/crack.password.db`
+		
+- <b>Run John on the new file (will take time and can periodically check progress by pressing a random key)</b>
+	- `john /tmp/crack.password.db`
+		
+- <b>When John finishes, it will dump the results into a log which can be viewed with the command</b>
+	- `john --show /tmp/crack.password.db`
+
+<!-------------------------------------- SMALL BREAK -------------------------------------->
+
+<h2>5. Network Protocol Analysis:</h2>
+	
+- <b>Tool: Wireshark</b>
+	- <b>Description:</b> Wireshark is a network protocol analyzer that can capture and analyze the data traveling back and forth on a network.
+	- <b>Installation:</b> Install on Ubuntu using
+	- `sudo apt install wireshark`
+ 	- ![image](https://github.com/AngelMcArthur/Linux-Hardening-Project/assets/55830075/116911b2-99fd-49e4-a3b7-80d65424e54d)
+ 	- <i>(Note) During the installation process, this messages will pop up. Choose "No" and just run as sudo whenever running Wireshark</i>
+
+- <b>Run with</b>
+	- `sudo wireshark`
+		
+- <b>Click at top left corner on the Wireshark logo to start capturing packets</b>
+	- ![image](https://github.com/AngelMcArthur/Linux-Hardening-Project/assets/55830075/486c637b-9560-4180-8c18-40d29fd88d1c)
+
+<!-------------------------------------- SMALL BREAK -------------------------------------->
+
+<h2>6. IoT Device Vulnerabilities:</h2>
+	
+- <b>Tool: Shodan
+	- Description:</b> Shodan is a search engine for Internet-connected devices, providing information about various devices on the Internet.
+	- <b>Installation:</b> Access through the Shodan website.
+	- <i>(Note) You need to have Python installed on your computer in order to use the Shodan CLI.</i>
+		
+- <b>Create an account on https://account.shodan.io/</b>
+		
+- <b>Get access to the free Shodan API key.
+	- <i>(Note) This API key can be retrieved by navigating to the "My Account" section of the Shodan website, linked at the upper right of the homepage.</i>
+		
+- <b>Once you have Python configured then you can run the following command to install the Shodan CLI:</b>
+	- `pip install -U --user shodan`
+		
+- <b>To confirm that it was properly installed you can run the command:</b>
+	- `shodan`
+	- <i>(Note) It should show you a list of possible sub-commands for the Shodan CLI.</i>
+		
+- <b>Initialize the Shodan CLI with your API key:</b>
+	- `shodan init YOUR_API_KEY`
+			
+- <b>Show commands related to alerts</b>
+	- `shodan alerts -h`
+			
+- <b>Create a network alert</b>
+	- `shodan alert create "My home network" <YOUR IP>`
+	- <i>(Note) Make note of the resulting alert ID, you need it for the next steps</i>
+		
+- <b>Configure and enable a trigger for the alert</b>
+	- <i>(Note) If you want to see what kinds of triggers are available run 'shodan alert triggers'. You can add more than one trigger to your alert by providing a comma-separated list of triggers as an argument to the command.</i>
+	- `shodan alert enable <YOUR alert ID> new_service`
+			
+- <b>Check the alert configuration</b>
+	- `shodan alert info <YOUR alert ID>`
+			
+- <b>Analyzing the statistics behind our alerts</b>
+	- `shodan alert stats`
+			
+- <b>GUI Alternative</b>
+	- <i>(Note) If you don’t like using the CLI or simply want to use a graphical user interface (GUI) to create and manage your alerts, you can do the same as before by going to https://monitor.shodan.io/dashboard and clicking “Setup Network Monitoring”</i>
+
+<!---------------------------------------------------------------------- SECTION BREAK ---------------------------------------------------------------------->
+
+<h1>Automated Hardening</h1>
+
+Automated hardening tools and scripts can be very useful for applying security configurations to Linux systems, and they often follow security standards such as DISA STIG or CIS benchmarks. However, it's important to note that the effectiveness of these tools may vary, and it's always recommended to review and test their configurations in your specific environment.
+
+Here are some free automated hardening tools for Linux systems, sorted from generally more strict to less strict:
+
+<h2>1. CIS-CAT (CIS Compliance Assessment Tool):</h2>
+- <b>Automation/Context:</b> The Center for Internet Security (CIS) provides a set of benchmarks for secure system configurations.
+- CIS-CAT is a tool that automates the process of assessing systems against these benchmarks.
+- <i></i>(Notes) CIS benchmarks are widely recognized and cover various operating systems. The tool provides scoring and recommendations for improving security.</i>
+
+<h2>2. OpenSCAP:</h2>
+- <b>Automation/Context:</b> OpenSCAP (Security Content Automation Protocol) provides a framework to create and maintain security policies, automate system compliance checking, and generate reports.
+- <i></i>(Notes) It supports various standards, including those from DISA STIG and CIS. OpenSCAP allows you to scan and remediate vulnerabilities.</i>
+
+<h2>3. Hardening Framework (STIG-4-Debian):</h2>
+- <b>Automation/Context:</b> This framework, also known as STIG-4-Debian, automates the application of DISA STIG controls to Debian-based systems.
+- <i>(Notes) It's specifically tailored for Debian-based distributions and aims to bring them in compliance with DISA STIG requirements.</i>
+
+<h2>4. Linux Security Expert (LSE):</h2>
+- <b>Automation/Context:</b> Linux Security Expert (LSE) is a script that automates security hardening for Linux servers. It includes options to secure various aspects of a system.
+- <i>(Notes) LSE is more focused on simplicity and covers general security practices rather than adhering strictly to specific benchmarks.</i>
+
+<h2>5. Bastille Linux:</h2>
+- <b>Automation/Context:</b> Bastille Linux is a hardening and reporting program that performs automated system hardening.
+- <i>(Notes) While it's been used historically, development has slowed down, and it may not cover the latest security practices. It's more suitable for older systems.</i>
+
+<h2>6. SecCheck:</h2>
+- <b>Automation/Context:</b> SecCheck is a security scanner and hardening script for Unix/Linux systems.
+- <i>(Notes) It provides checks for common security misconfigurations and can be used to automate some hardening tasks.</i>
+
+<!---------------------------------------------------------------------- SECTION BREAK ---------------------------------------------------------------------->
